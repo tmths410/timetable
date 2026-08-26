@@ -36,9 +36,18 @@
       .loader { display: none; width: 26px; height: 26px; margin: 0 auto; border: 4px solid #e9ecef; border-top-color: var(--school-blue); border-radius: 50%; animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
       .result-box { display: none; white-space: pre-wrap; padding: 15px; border-radius: 9px; font-size: .95rem; }
-      .teacher-checkboxes { max-height: 310px; overflow-y: auto; border: 1px solid #dee2e6; padding: 14px; border-radius: 9px; background: #fff; columns: 2; }
-      .teacher-checkboxes .form-check { break-inside: avoid; margin-bottom: 8px; }
-      @media (max-width: 576px) { body { padding: 16px 8px; } .teacher-checkboxes { columns: 1; } }
+      
+      /* ⭐ 교사 체크박스 목록: 이름 너비(110px)에 맞춰 빈틈없이 바짝 정렬되도록 Grid 적용 */
+      .teacher-checkboxes { 
+        max-height: 310px; overflow-y: auto; border: 1px solid #dee2e6; padding: 14px; 
+        border-radius: 9px; background: #fff; 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
+        gap: 10px 8px; 
+      }
+      .teacher-checkboxes .form-check { margin-bottom: 0; white-space: nowrap; }
+      
+      @media (max-width: 576px) { body { padding: 16px 8px; } }
     </style>
   </head>
   <body>
@@ -57,7 +66,6 @@
         <section class="tab-pane fade show active" id="schedulePane" role="tabpanel" aria-labelledby="schedule-main-tab" tabindex="0">
           <div class="card"><div class="card-body p-3 p-md-4">
             
-            <!-- ⭐ 교사 선택 및 주차 이동 버튼 UI 배치 -->
             <label for="swapTeacher" class="form-label fw-bold mb-1">교사 선택</label>
             <div class="d-flex gap-2 mb-3">
               <select id="swapTeacher" class="form-select"></select>
@@ -88,7 +96,10 @@
           <div class="card"><div class="card-body p-3 p-md-4">
             <h2 class="h5 fw-bold text-primary mb-3">회의 시간 찾기</h2>
             <label class="form-label fw-bold">회의 시간을 맞출 교사 선택 <span class="text-muted fw-normal">(2명 이상)</span></label>
+            
+            <!-- ⭐ 간격이 조밀하게 수정된 체크박스 목록 영역 -->
             <div id="teacherCheckboxes" class="teacher-checkboxes mb-3"></div>
+            
             <div class="d-flex gap-2">
               <button class="btn btn-primary flex-grow-1" type="button" onclick="findFreeSlots()">회의 가능 시간 찾기</button>
               <button class="btn btn-outline-secondary" type="button" onclick="resetFreeResult()">초기화</button>
@@ -110,8 +121,6 @@
       window.appData = null;
       window.sheetUrl = '';
       window.selectedPeriodCols = [];
-      
-      // ⭐ 주차 계산을 위한 오프셋 변수 (0: 이번주, -1: 저번주, 1: 다음주)
       window.weekOffset = 0; 
 
       const WEEKDAYS = [
@@ -165,14 +174,13 @@
         document.getElementById('scheduleGuide').textContent = '시간표 정보를 불러오지 못했습니다. ' + getErrorMessage(error);
       }
 
-      // ⭐ 주차 변경 버튼을 누를 때 실행되는 함수
       function changeWeek(delta) {
         if (delta === 0) {
-          window.weekOffset = 0; // 이번 주로 리셋
+          window.weekOffset = 0; 
         } else {
-          window.weekOffset += delta; // 이전 주(-1) 또는 다음 주(+1) 누적 계산
+          window.weekOffset += delta; 
         }
-        renderSelectedTeacherSchedule(); // 시간표 갱신
+        renderSelectedTeacherSchedule(); 
       }
 
       function renderSelectedTeacherSchedule() {
@@ -194,7 +202,7 @@
 
       function buildWeeklyTable(teacher) {
         const container = document.getElementById('tableContainer');
-        const weekDates = getCurrentWeekDates(); // ⭐ 계산된 주차 날짜들을 불러옴
+        const weekDates = getCurrentWeekDates(); 
         
         let thead = '<thead><tr><th class="period-cell">교시</th>';
         WEEKDAYS.forEach(function (day, idx) {
@@ -258,12 +266,10 @@
         }
       }
 
-      // ⭐ 날짜 계산 로직: weekOffset(주차 이동)을 반영하도록 수정
       function getCurrentWeekDates() {
         const today = new Date();
         today.setHours(12, 0, 0, 0);
         
-        // 이전 주/다음 주 버튼을 눌렀을 때 해당 날짜를 더하거나 뺌
         today.setDate(today.getDate() + (window.weekOffset * 7));
         
         const day = today.getDay();
@@ -297,7 +303,7 @@
       function resetSwapResult() {
         hideResult('result1');
         document.getElementById('swapTeacher').value = '';
-        window.weekOffset = 0; // ⭐ 초기화 시 날짜도 '이번 주'로 기본 복구
+        window.weekOffset = 0; 
         renderSelectedTeacherSchedule();
         callAppsScript('runResetColorsWeb').catch(function (error) { console.error(error); });
       }
