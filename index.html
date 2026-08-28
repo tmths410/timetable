@@ -20,8 +20,17 @@
       .schedule-table th { background: #f8fafc; color: #4d5968; text-align: center; vertical-align: middle; padding: 10px 4px; border-bottom: 2px solid #dee2e6; }
       .schedule-table td { height: 60px; vertical-align: middle; text-align: center; padding: 6px; border: 1px solid #e9ecef; }
       
-      .period-cell { width: 85px; font-weight: 800; background: #f8fafc; color: #4d5968; }
-      .time-text { font-size: 0.72rem; color: #87929d; font-weight: normal; }
+      .schedule-table th.period-cell, .schedule-table td.period-cell {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: #f8fafc;
+        border-right: 2px solid #cdd4dc; 
+      }
+      .schedule-table thead th.period-cell { z-index: 2; }
+      .period-cell { width: 100px; font-weight: 800; color: #4d5968; }
+      
+      .time-text { font-size: 0.68rem; color: #87929d; font-weight: normal; }
       
       .class-slot { cursor: pointer; font-weight: 700; color: var(--school-blue); transition: background-color .15s, box-shadow .15s; }
       .class-slot:hover { background: var(--school-blue-light); }
@@ -37,7 +46,6 @@
       @keyframes spin { to { transform: rotate(360deg); } }
       .result-box { display: none; white-space: pre-wrap; padding: 15px; border-radius: 9px; font-size: .95rem; }
       
-      /* ⭐ 교사 체크박스 목록: 이름 너비(110px)에 맞춰 빈틈없이 바짝 정렬되도록 Grid 적용 */
       .teacher-checkboxes { 
         max-height: 310px; overflow-y: auto; border: 1px solid #dee2e6; padding: 14px; 
         border-radius: 9px; background: #fff; 
@@ -53,9 +61,6 @@
   <body>
     <main class="app-container">
       <h1 class="system-title text-center mb-4 fw-bold">동명공고 교사 시간표 시스템</h1>
-      <div class="d-flex justify-content-end mb-3">
-        <button class="btn btn-outline-primary btn-sm fw-bold" type="button" onclick="openSheet()">결과 시트 열기 (새 창)</button>
-      </div>
 
       <ul class="nav nav-tabs main-tabs mb-3" id="mainTabs" role="tablist">
         <li class="nav-item flex-fill" role="presentation"><button class="nav-link active w-100" id="schedule-main-tab" data-bs-toggle="tab" data-bs-target="#schedulePane" type="button" role="tab" aria-controls="schedulePane" aria-selected="true">교사 시간표</button></li>
@@ -79,14 +84,23 @@
             <div id="scheduleGuide" class="empty-guide">교사를 선택하면 시간표가 표시됩니다.</div>
             
             <div id="weeklySchedule" class="d-none">
+              <!-- 시간표 테이블 표시 영역 -->
               <div id="tableContainer"></div>
-              <p class="selected-info mt-3 mb-2" id="selectedClassInfo">교체할 수업을 시간표에서 선택해 주세요 (여러 개 선택 가능).</p>
+              
+              <!-- ⭐ 1. 결과 시트 열기 버튼 위치 이동 및 텍스트 수정 -->
+              <div class="d-flex justify-content-end mt-2 mb-3">
+                <button class="btn btn-outline-primary btn-sm fw-bold" type="button" onclick="openSheet()">교체 가능 수업 찾기 주간 시간표로 확인(새창)</button>
+              </div>
             </div>
             
             <div class="d-flex gap-2 mt-3">
               <button class="btn btn-success flex-grow-1" type="button" onclick="findSwaps()">교체 가능 수업 찾기</button>
               <button class="btn btn-outline-secondary" type="button" onclick="resetSwapResult()">초기화</button>
             </div>
+            
+            <!-- ⭐ 2. 안내 문구 위치 이동 및 텍스트(마침표 제거) 수정 -->
+            <p class="selected-info mt-3 mb-2 text-center" id="selectedClassInfo">교체할 수업을 시간표에서 선택해 주세요 (여러 개 선택 가능)</p>
+            
             <div class="text-center mt-3"><div id="loader1" class="loader"></div></div>
             <div id="result1" class="result-box mt-3"></div>
           </div></div>
@@ -97,7 +111,6 @@
             <h2 class="h5 fw-bold text-primary mb-3">회의 시간 찾기</h2>
             <label class="form-label fw-bold">회의 시간을 맞출 교사 선택 <span class="text-muted fw-normal">(2명 이상)</span></label>
             
-            <!-- ⭐ 간격이 조밀하게 수정된 체크박스 목록 영역 -->
             <div id="teacherCheckboxes" class="teacher-checkboxes mb-3"></div>
             
             <div class="d-flex gap-2">
@@ -130,7 +143,8 @@
         { key: 'thu', short: '목', long: '목요일' },
         { key: 'fri', short: '금', long: '금요일' }
       ];
-      const PERIOD_TIMES = ['08:50', '09:50', '10:50', '11:50', '13:30', '14:30', '15:30'];
+      
+      const PERIOD_TIMES = ['08:50~09:40', '09:50~10:40', '10:50~11:40', '11:50~12:40', '13:30~14:20', '14:30~15:20', '15:30~16:20'];
 
       window.addEventListener('load', function () {
         callAppsScript('getInitialData').then(populateData).catch(showLoadError);
@@ -189,7 +203,9 @@
         const schedule = document.getElementById('weeklySchedule');
         
         window.selectedPeriodCols = [];
-        document.getElementById('selectedClassInfo').textContent = '교체할 수업을 시간표에서 선택해 주세요 (여러 개 선택 가능).';
+        
+        // ⭐ 교사 선택 시 초기화되는 텍스트 수정 반영
+        document.getElementById('selectedClassInfo').textContent = '교체할 수업을 시간표에서 선택해 주세요 (여러 개 선택 가능)';
         
         if (!window.appData || !selectedRow) { guide.classList.remove('d-none'); schedule.classList.add('d-none'); return; }
         const teacher = window.appData.teachers.find(function (item) { return item.row === selectedRow; });
@@ -225,7 +241,7 @@
             const isFree = !classText;
             
             if (isFree || !periodInfo) {
-              row += '<td class="free-slot">공강</td>';
+              row += '<td class="free-slot"></td>';
             } else {
               row += '<td class="class-slot" data-col="' + periodInfo.col + '" data-label="' + escapeHtml(day.long + ' ' + p + '교시 ' + classText) + '">' + escapeHtml(classText) + '</td>';
             }
@@ -258,7 +274,8 @@
         
         const infoEl = document.getElementById('selectedClassInfo');
         if (window.selectedPeriodCols.length === 0) {
-          infoEl.textContent = '교체할 수업을 시간표에서 선택해 주세요 (여러 개 선택 가능).';
+          // ⭐ 항목 선택이 없을 경우 텍스트 수정 반영
+          infoEl.textContent = '교체할 수업을 시간표에서 선택해 주세요 (여러 개 선택 가능)';
         } else if (window.selectedPeriodCols.length === 1) {
           infoEl.textContent = '선택한 수업: ' + selectedCells[0].dataset.label;
         } else {
@@ -327,7 +344,7 @@
       function showResult(loaderId, resultId, response, successColor) {
         toggleLoading(loaderId, resultId, false);
         const box = document.getElementById(resultId);
-        box.style.display = 'block'; box.textContent = response.message;
+        box.style.display = 'block'; box.innerHTML = response.message;
         box.className = response.success ? 'result-box mt-3 bg-' + successColor + ' text-white' : 'result-box mt-3 bg-warning text-dark';
       }
       function showRequestError(loaderId, resultId, error) {
